@@ -1,26 +1,26 @@
 create procedure syn.usp_ImportFileCustomerSeasonal
 	@ID_Record int
-AS
-set nocount on
+AS -- 1 ключевое слово должно начинаться с большой буквы --
+set nocount on -- 2 Алиас должен быть без переносов
 begin
 	declare @RowCount int = (select count(*) from syn.SA_CustomerSeasonal)
-	declare @ErrorMessage varchar(max)
-
--- Проверка на корректность загрузки
+	declare @ErrorMessage varchar(max) -- 3 Перед открывающейся скобкой должен быть пробел 4 declare используется только один раз
+                                        -- 5 Рекомендуется не использовать max при объявлении типов
+-- Проверка на корректность загрузки  -- 6 Комментарий должен иметь тот же отступ, что и код
 	if not exists (
-	select 1
+	select 1 -- 7 конструкция должна сместиться на один оступ, так как здесь усл. оператор if
 	from syn.ImportFile as f
 	where f.ID = @ID_Record
 		and f.FlagLoaded = cast(1 as bit)
 	)
-		begin
-			set @ErrorMessage = 'Ошибка при загрузке файла, проверьте корректность данных'
+		begin -- 8 Не должно быть пустой строки перед блоком begin
+			set @ErrorMessage = 'Ошибка при загрузке файла, проверьте корректность данных' -- 9 Отступов перед set не должно быть
 
-			raiserror(@ErrorMessage, 3, 1)
-			return
+			raiserror(@ErrorMessage, 3, 1) -- 10 Содержимое скобок должно переносится на сл. строку
+			return --11 Не должно быть пустой строки перед return
 		end
 
-	--Чтение из слоя временных данных
+	--Чтение из слоя временных данных -- 12 Между - и комментарием должен быть пробел
 	select
 		c.ID as ID_dbo_Customer
 		,cst.ID as ID_CustomerSystemType
@@ -31,14 +31,14 @@ begin
 		,cast(isnull(cs.FlagActive, 0) as bit) as FlagActive
 	into #CustomerSeasonal
 	from syn.SA_CustomerSeasonal cs
-		join dbo.Customer as c on c.UID_DS = cs.UID_DS_Customer
+		join dbo.Customer as c on c.UID_DS = cs.UID_DS_Customer -- 13 join пишется с одним отступом
 			and c.ID_mapping_DataSource = 1
 		join dbo.Season as s on s.Name = cs.Season
 		join dbo.Customer as c_dist on c_dist.UID_DS = cs.UID_DS_CustomerDistributor
 			and cd.ID_mapping_DataSource = 1
 		join syn.CustomerSystemType as cst on cs.CustomerSystemType = cst.Name
 	where try_cast(cs.DateBegin as date) is not null
-		and try_cast(cs.DateEnd as date) is not null
+		and try_cast(cs.DateEnd as date) is not null -- 14 and пишется на одну табуляцию от join
 		and try_cast(isnull(cs.FlagActive, 0) as bit) is not null
 
 	-- Определяем некорректные записи
@@ -46,7 +46,7 @@ begin
 	select
 		cs.*
 		,case
-			when c.ID is null then 'UID клиента отсутствует в справочнике "Клиент"'
+			when c.ID is null then 'UID клиента отсутствует в справочнике "Клиент"' -- 15 then должен быть в двух отступах when
 			when c_dist.ID is null then 'UID дистрибьютора отсутствует в справочнике "Клиент"'
 			when s.ID is null then 'Сезон отсутствует в справочнике "Сезон"'
 			when cst.ID is null then 'Тип клиента отсутствует в справочнике "Тип клиента"'
@@ -57,7 +57,7 @@ begin
 	into #BadInsertedRows
 	from syn.SA_CustomerSeasonal as cs
 	left join dbo.Customer as c on c.UID_DS = cs.UID_DS_Customer
-		and c.ID_mapping_DataSource = 1
+		and c.ID_mapping_DataSource = 1 -- 16 and выравнивается на одну табуляцию от join
 	left join dbo.Customer as c_dist on c_dist.UID_DS = cs.UID_DS_CustomerDistributor and c_dist.ID_mapping_DataSource = 1
 	left join dbo.Season as s on s.Name = cs.Season
 	left join syn.CustomerSystemType as cst on cst.Name = cs.CustomerSystemType
@@ -86,14 +86,14 @@ begin
 		and s.DateBegin = cs.DateBegin
 	when matched 
 		and t.ID_CustomerSystemType <> s.ID_CustomerSystemType then
-		update
+		update -- 17 Отсутствует конструкция from --
 		set
 			ID_CustomerSystemType = s.ID_CustomerSystemType
 			,DateEnd = s.DateEnd
 			,ID_dbo_CustomerDistributor = s.ID_dbo_CustomerDistributor
 			,FlagActive = s.FlagActive
 	when not matched then
-		insert (ID_dbo_Customer, ID_CustomerSystemType, ID_Season, DateBegin, DateEnd, ID_dbo_CustomerDistributor, FlagActive)
+		insert (ID_dbo_Customer, ID_CustomerSystemType, ID_Season, DateBegin, DateEnd, ID_dbo_CustomerDistributor, FlagActive) -- 18 Содержимое в скобке надо перенести на следующую строку
 		values (s.ID_dbo_Customer, s.ID_CustomerSystemType, s.ID_Season, s.DateBegin, s.DateEnd, s.ID_dbo_CustomerDistributor, s.FlagActive)
 	;
 
